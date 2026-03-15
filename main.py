@@ -1,7 +1,8 @@
-from Sistema import Sistema
+
+from sistema import sistema
 
 def main(api_t1,api_t2,api_t3,api_profesores):
-    sistema = Sistema()
+    sistema = sistema()
     # menu de arranque  
     sistema.menu_arranque(api_t1,api_t2,api_t3,api_profesores)
     
