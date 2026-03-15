@@ -1,6 +1,5 @@
 import csv
 import requests
-from materia import materia
 from profesor import profesor
 from horario import horario
  
@@ -284,13 +283,12 @@ def cargar_datos_csv(self):
                     if cont.lower() == 'y':
                         for i in range(len(self.profesores)):
                             if self.profesores[i].cedula == int(cedula):
-                                
                                 # Verificar y mostrar mensaje si cuando lo elimino se queda alguna materia sin profesor
                                 self.profesores.pop(i)
-                                print('Profesor eliminado')
-                                break   
-                else:
-                    print('No existe el profesor con la cedula ingresada')
+                            print('Profesor eliminado')
+                                   
+                    else:
+                        print('No existe el profesor con la cedula ingresada')
                     
             elif eleccion == "5":
                 self.modificar_materias_profesor()
@@ -778,6 +776,5 @@ def cargar_datos_csv(self):
                 print("Volviendo al menú principal...")
                 break
 
-
-    # def modificar_horarios(self):
-    #     print("Funcionalidad de modificación de horarios aún no implementada.")
+        def modificar_horarios(self):
+            print("Funcionalidad de modificación de horarios aún no implementada.")
