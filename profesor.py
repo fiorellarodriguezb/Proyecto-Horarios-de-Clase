@@ -29,4 +29,3 @@ def ver_datos(self):
         print(f"    Nombre: {self.nombre}")
         print(f"    Max Carga: {self.max_carga}")
         print(f"    Materias: {self.materias}")
-
