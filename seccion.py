@@ -1,3 +1,5 @@
+# Fiorella Rodriguez y Veronica Gonzalez
+
 class Seccion():
     def __init__(self, codigo_seccion, profesor, bloque, salon):
         self.codigo = codigo_seccion

@@ -1,13 +1,23 @@
+# Fiorella Rodriguez y Veronica Gonzalez
+
 import csv
+import matplotlib.pyplot as plt
 import requests
-from materia import materia
-from profesor import profesor
-from horario import horario
+from materia import Materia
+from profesor import Profesor
+from horario import Horario
  
 from funciones import *
 
 
 class Sistema():
+    """
+    Clase principal que orquesta la lógica del negocio del sistema de horarios.
+    
+    Se encarga de la integración con la API externa, el procesamiento de datos,
+    la ejecución del algoritmo de asignación automática, la modificación manual
+    de la oferta académica y la exportación de resultados a archivos CSV.
+    """
     def __init__(self):
         self.codigos_materias = []
         self.materias_t1 = []
@@ -18,16 +28,49 @@ class Sistema():
     
     def prueba_csv(self):
               
-        # Visualizacion de como podemos pasar todo a csv
-              
-        lista_para_csv = '['
-        for materia in self.materias_t1:
-            lista_para_csv += f"{materia.codigo},{materia.nombre} ;"
-        lista_para_csv += ']'
-        print(lista_para_csv)
-    
-    
-    
+       def guardar_horarios_csv(self):
+        """
+        Exporta el horario generado a un archivo CSV para que la información
+        pueda ser consultada externamente o cargada en el futuro.
+        """
+        if not self.horarios:
+            print("No hay un horario generado para guardar. Primero genere el horario en la opción 3.")
+            return
+
+        nombre_archivo = input("Ingrese el nombre del archivo para guardar (ej: mi_horario.csv): ").strip()
+        if not nombre_archivo.endswith('.csv'):
+            nombre_archivo += '.csv'
+
+        try:
+            with open(nombre_archivo, mode='w', newline='', encoding='utf-8') as file:
+                escritor = csv.writer(file)
+                
+                # Escribimos los encabezados de las columnas
+                escritor.writerow(['Codigo Materia', 'Nombre Materia', 'Seccion', 'Dia', 'Hora', 'Profesor', 'Salon', 'Estado'])
+                
+                for h in self.horarios:
+                    # Extraemos dia y hora de la tupla bloque (dia, hora)
+                    dia = h.bloque[0] if h.bloque else "N/A"
+                    hora = h.bloque[1] if h.bloque else "N/A"
+                    
+                    # Formateamos el nombre del profesor
+                    prof = f"{h.profesor.nombre} {h.profesor.apellido}" if h.profesor else "Sin asignar"
+                    
+                    escritor.writerow([
+                        h.materia_codigo,
+                        h.materia_nombre,
+                        h.seccion_num,
+                        dia,
+                        hora,
+                        prof,
+                        h.salon if h.salon else "N/A",
+                        h.estado
+                    ])
+                    
+            print(f"\n¡Éxito! El horario se ha exportado correctamente a: {nombre_archivo}")
+        except Exception as e:
+            print(f"Error crítico al intentar escribir el archivo: {e}")
+
         
     def menu_arranque(self,api_t1,api_t2,api_t3,api_profesores):
         
@@ -47,17 +90,22 @@ class Sistema():
             elif eleccion == "3":
                 print("Cargando datos desde un CSV...")
                 
-                # Funcion por realizar
+            elif eleccion == "4":
+                # Guardar asignación de horarios en CSV
+                self.guardar_horarios_csv()
                 
                 self.menu_principal()
                 break
-            elif eleccion == "4":
+            elif eleccion == "5":
                 print("Saliendo del sistema...")
                 break
     
 
     def cargar_datos_API(self,api_t1,api_t2,api_t3,api_profesores):
-        
+        """
+Realiza una petición GET a la API externa para obtener el listado de profesores.
+Maneja excepciones de conexión y procesa la respuesta JSON para crear objetos Profesor.
+"""
         opciones = ["Trimestre 1", "Trimestre 2", "Trimestre 3", "Todos los trimestres"]
         eleccion = mostrar_elegir_opcion("Cargando materias...", opciones)
        
@@ -85,7 +133,7 @@ class Sistema():
                 max_carga = profesor["Max Carga"]
                 materias = profesor["Materias"]
 
-                nuevo_profesor = profesor(cedula, email, apellido, nombre, max_carga, materias)
+                nuevo_profesor = Profesor(cedula, email, apellido, nombre, max_carga, materias)
                 
                 self.profesores.append(nuevo_profesor) 
              
@@ -103,80 +151,19 @@ class Sistema():
                 nombre = materia['Nombre']
                 secciones = materia['Secciones']
                                 
-                nueva_materia = materia(codigo, nombre, secciones)  
+                nueva_materia = Materia(codigo, nombre, secciones)  
                 if num_trimestre == 1:
                     self.materias_t1.append(nueva_materia)
                 elif num_trimestre == 2:
                     self.materias_t2.append(nueva_materia)
                 elif num_trimestre == 3:
                     self.materias_t3.append(nueva_materia)
-    
-def cargar_datos_csv(self):
-    """
-    Espera CSV con filas:
-    codigo,nombre,secciones,trimestre
-    Cedula,Email,Apellido,Nombre,Max Carga,Materias
-    """
-    ruta = input("Ingrese ruta del archivo CSV: ").strip()
-    if not ruta:
-        print("Ruta vacía, operación cancelada.")
-        return
-
-    try:
-        with open(ruta, newline='', encoding='utf-8') as f:
-            lector = csv.reader(f)
-            cabezales = next(lector, None)
-            if not cabezales:
-                print("Archivo vacío")
-                return
-
-            # Detecta si es CSV de materias o de profesores
-            if "codigo" in [h.lower() for h in cabezales]:
-                for fila in lector:
-                    if len(fila) < 4: continue
-                    codigo, nombre, secciones, trimestre = fila[:4]
-                    # evitar duplicados
-                    if codigo in self.codigos_materias:
-                        continue
-                    self.codigos_materias.append(codigo)
-                    try:
-                        secciones_int = int(secciones)
-                    except:
-                        secciones_int = 1
-                    materia = materia(codigo, nombre, secciones_int)
-                    if trimestre.strip() == "1":
-                        self.materias_t1.append(materia)
-                    elif trimestre.strip() == "2":
-                        self.materias_t2.append(materia)
-                    elif trimestre.strip() == "3":
-                        self.materias_t3.append(materia)
-                    else:
-                        self.materias_t1.append(materia)
-                print("Carga de materias desde CSV completada.")
-            elif "cedula" in [h.lower() for h in cabezales]:
-                for fila in lector:
-                    if len(fila) < 6: continue
-                    cedula, email, apellido, nombre, max_carga, materias_txt = fila[:6]
-                    try:
-                        cedula_int = int(cedula)
-                    except:
-                        cedula_int = cedula
-                    try:
-                        max_carga_int = int(max_carga)
-                    except:
-                        max_carga_int = max_carga
-                    materias = [m.strip() for m in materias_txt.split(';') if m.strip()]
-                    prof = profesor(cedula_int, email, apellido, nombre, max_carga_int, materias)
-                    self.profesores.append(prof)
-                print("Carga de profesores desde CSV completada.")
-            else:
-                print("Encabezado no reconocido. Use un CSV de materias o profesores.")
-    except FileNotFoundError:
-        print("Archivo no encontrado:", ruta)
-    except Exception as e:
-        print("Error leyendo CSV:", e)
                     
     def menu_principal(self):
+        """
+Interfaz de usuario de consola que gestiona el flujo principal del programa 
+y el acceso a los diferentes módulos del sistema.
+"""
         while True:
             # Funcionalidades del sistema por realizar
             titulo = '    ----- Bienvenido al sistema de horarios de clase. -----'
@@ -198,7 +185,7 @@ def cargar_datos_csv(self):
                 
             elif eleccion == "4":
                 # Modulo modificacion de horarios
-                self.modificar_horarios
+                self.modificar_horarios()
             
             elif eleccion == "5":
                 # Modulo estadisticas
@@ -207,6 +194,45 @@ def cargar_datos_csv(self):
             elif eleccion == "6":
                 print("Saliendo del sistema...")
                 break
+
+            def ver_estadisticas(self):
+                """
+        Genera gráficos estadísticos sobre la asignación de carga de los profesores
+        utilizando matplotlib.
+        """
+        if not self.horarios:
+            print("No hay datos de horario para generar estadísticas. Primero genere el horario.")
+            return
+
+        # 1. Preparar los datos: Contar materias por profesor
+        conteo_carga = {}
+        for h in self.horarios:
+            if h.estado == "asignada" and h.profesor:
+                nombre_completo = f"{h.profesor.nombre} {h.profesor.apellido}"
+                conteo_carga[nombre_completo] = conteo_carga.get(nombre_completo, 0) + 1
+
+        if not conteo_carga:
+            print("No hay profesores asignados en el horario actual.")
+            return
+
+        profesores = list(conteo_carga.keys())
+        materias_asignadas = list(conteo_carga.values())
+
+        # 2. Crear el gráfico de barras
+        plt.figure(figsize=(10, 6))
+        plt.bar(profesores, materias_asignadas, color='skyblue', edgecolor='navy')
+        
+        # 3. Personalización del gráfico
+        plt.title('Carga Académica por Profesor (Materias Asignadas)', fontsize=14)
+        plt.xlabel('Profesores', fontsize=12)
+        plt.ylabel('Cantidad de Materias', fontsize=12)
+        plt.xticks(rotation=45, ha='right') # Rotar nombres para que se lean bien
+        plt.yticks(range(0, max(materias_asignadas) + 2)) # Escala de 1 en 1
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        plt.tight_layout() # Ajusta el diseño para que no se corten los nombres
+        print("Generando gráfico... Por favor, cierre la ventana del gráfico para continuar.")
+        plt.show()
             
     def modulo_profesores(self):   
         while True:
@@ -258,7 +284,7 @@ def cargar_datos_csv(self):
                         nombre = solicitar_dato('nombre')
                         max_carga = solicitar_dato('numero')
                         materias = solicitar_dato('lista de materias', 4, self.codigos_materias)
-                        nuevo_prof = profesor(int(cedula),email,apellido,nombre,max_carga,materias)
+                        nuevo_prof = Profesor(int(cedula),email,apellido,nombre,max_carga,materias)
                         self.profesores.append(nuevo_prof)
                         print('Profesor registrado.')
                         nuevo_prof.ver_datos()
@@ -284,13 +310,12 @@ def cargar_datos_csv(self):
                     if cont.lower() == 'y':
                         for i in range(len(self.profesores)):
                             if self.profesores[i].cedula == int(cedula):
-                                
                                 # Verificar y mostrar mensaje si cuando lo elimino se queda alguna materia sin profesor
                                 self.profesores.pop(i)
-                                print('Profesor eliminado')
-                                break   
-                else:
-                    print('No existe el profesor con la cedula ingresada')
+                            print('Profesor eliminado')
+                                   
+                    else:
+                        print('No existe el profesor con la cedula ingresada')
                     
             elif eleccion == "5":
                 self.modificar_materias_profesor()
@@ -393,6 +418,7 @@ def cargar_datos_csv(self):
                     secciones_int = int(secciones)
                 except:
                     secciones_int = 1
+                    materia: any
                 nueva = materia(codigo, nombre, secciones_int)
                 self.codigos_materias.append(codigo)
                 if trimestre == "2":
@@ -449,6 +475,10 @@ def cargar_datos_csv(self):
                 print("Opción inválida. Intente de nuevo.")
         
     def generar_horarios(self):
+        """
+Algoritmo de asignación automática. Distribuye las materias según la disponibilidad 
+de los profesores, respetando su carga máxima y los bloques horarios de 1.5 horas.
+"""
         # Bloques disponibles (par de días + hora)
         dias = ["Lunes y Miércoles", "Martes y Jueves"]
         horarios = [
@@ -458,6 +488,7 @@ def cargar_datos_csv(self):
             "12:15 - 1:45",
             "2:00 - 3:30",
             "3:45 - 5:15",
+            "5:30 - 7:00",
         ]
 
         # Solicitar la cantidad de salones disponibles (capacidad por bloque)
@@ -499,7 +530,7 @@ def cargar_datos_csv(self):
                 num_secciones = 1
 
             for sec in range(1, num_secciones + 1):
-                secciones_pendientes.append(horario(materia.codigo,materia.nombre,sec))
+                secciones_pendientes.append(Horario(materia.codigo,materia.nombre,sec))
 
         # Estado de asignaciones por bloque y por profesor
         bloque_asignaciones = {bloque: [] for bloque in bloques}
@@ -651,6 +682,7 @@ def cargar_datos_csv(self):
             "12:15 - 1:45",
             "2:00 - 3:30",
             "3:45 - 5:15",
+            "5:30 - 7:00",
         ]
         bloques = []
         for dia in dias:
@@ -778,6 +810,85 @@ def cargar_datos_csv(self):
                 print("Volviendo al menú principal...")
                 break
 
+            def modificar_horarios(self):
+             """
+        Permite al usuario buscar una sección específica y cambiarle 
+        manualmente el profesor asignado o el bloque horario.
+        """
+        if not self.horarios:
+            print("No hay un horario generado. Por favor, genere o cargue uno primero.")
+            return
 
-    # def modificar_horarios(self):
-    #     print("Funcionalidad de modificación de horarios aún no implementada.")
+        codigo = input("Ingrese el código de la materia: ").strip()
+        seccion_input = input("Ingrese el número de sección: ").strip()
+
+        try:
+            seccion_num = int(seccion_input)
+        except:
+            print("Número de sección inválido.")
+            return
+
+        # Buscamos la sección en la lista de horarios generados
+        seccion_encontrada = None
+        for h in self.horarios:
+            if h.materia_codigo == codigo and h.seccion_num == seccion_num:
+                seccion_encontrada = h
+                break
+
+        if not seccion_encontrada:
+            print("No se encontró esa sección en el sistema.")
+            return
+
+        # Mostrar estado actual de la sección
+        prof_nombre = f"{seccion_encontrada.profesor.nombre} {seccion_encontrada.profesor.apellido}" if seccion_encontrada.profesor else "Sin asignar"
+        bloque_str = f"{seccion_encontrada.bloque[0]} {seccion_encontrada.bloque[1]}" if seccion_encontrada.bloque else "Sin asignar"
+        
+        print(f"\n--- Editando: {seccion_encontrada.materia_nombre} (Sección {seccion_encontrada.seccion_num}) ---")
+        print(f"Profesor actual: {prof_nombre}")
+        print(f"Horario actual: {bloque_str}")
+
+        opciones = ["Cambiar Profesor", "Cambiar Bloque Horario", "Volver"]
+        eleccion = mostrar_elegir_opcion("¿Qué desea modificar?", opciones)
+
+        if eleccion == "1":
+            # Lógica para cambiar profesor
+            candidatos = self.profesores_para_materia(codigo)
+            if not candidatos:
+                print("No existen otros profesores registrados para esta materia.")
+            else:
+                print("\nProfesores aptos para esta materia:")
+                for i, p in enumerate(candidatos):
+                    print(f"{i+1}. {p.nombre} {p.apellido} (CI: {p.cedula})")
+                
+                sel = input("Seleccione el número del nuevo profesor: ")
+                if sel.isdigit() and 1 <= int(sel) <= len(candidatos):
+                    seccion_encontrada.profesor = candidatos[int(sel)-1]
+                    seccion_encontrada.estado = "asignada"
+                    print("¡Profesor actualizado con éxito!")
+                else:
+                    print("Selección inválida.")
+
+        elif eleccion == "2":
+            # Lógica para cambiar bloque (Incluye los 7 bloques reglamentarios)
+            dias = ["Lunes y Miércoles", "Martes y Jueves"]
+            horas = [
+                "7:00 - 8:30", "8:45 - 10:15", "10:30 - 12:00", 
+                "12:15 - 1:45", "2:00 - 3:30", "3:45 - 5:15", "5:30 - 7:00"
+            ]
+            
+            bloques_posibles = []
+            for d in dias:
+                for h in horas:
+                    bloques_posibles.append((d, h))
+            
+            print("\nBloques horarios disponibles:")
+            for i, b in enumerate(bloques_posibles):
+                print(f"{i+1}. {b[0]} {b[1]}")
+            
+            sel = input("Seleccione el número del nuevo bloque: ")
+            if sel.isdigit() and 1 <= int(sel) <= len(bloques_posibles):
+                seccion_encontrada.bloque = bloques_posibles[int(sel)-1]
+                seccion_encontrada.estado = "asignada"
+                print("¡Bloque horario actualizado con éxito!")
+            else:
+                print("Selección inválida.")

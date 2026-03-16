@@ -1,3 +1,5 @@
+# Fiorella Rodriguez y Veronica Gonzalez
+
 def mostrar_elegir_opcion(titulo,lista_opciones):
     print(f"     {titulo}")          
     # Elegir un trimestre o elegir cargar todos
