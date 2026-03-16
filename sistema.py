@@ -101,43 +101,65 @@ class Sistema():
                 break
     
 
-    def cargar_datos_API(self,api_t1,api_t2,api_t3,api_profesores):
+def cargar_datos_api(self):
         """
-Realiza una petición GET a la API externa para obtener el listado de profesores.
-Maneja excepciones de conexión y procesa la respuesta JSON para crear objetos Profesor.
-"""
-        opciones = ["Trimestre 1", "Trimestre 2", "Trimestre 3", "Todos los trimestres"]
-        eleccion = mostrar_elegir_opcion("Cargando materias...", opciones)
-       
-        if eleccion == "1":
-            self.cargar_materias_tn(api_t1,1)
-        elif eleccion == "2":
-            self.cargar_materias_tn(api_t2,2)
-        elif eleccion == "3":
-            self.cargar_materias_tn(api_t3,3)
-        elif eleccion == "4":
-            self.cargar_materias_tn(api_t1,1)
-            self.cargar_materias_tn(api_t2,2)
-            self.cargar_materias_tn(api_t3,3)
+        Permite al usuario seleccionar un trimestre y descarga los datos 
+        correspondientes de profesores y materias desde la API de GitHub.
+        """
+        print("\n--- Selección de Trimestre ---")
+        print("1. Trimestre 2425-3")
+        print("2. Trimestre 2526-1")
+        print("3. Trimestre 2526-2")
+        
+        opcion = input("Seleccione el trimestre a gestionar: ").strip()
+        
+        # Diccionario para mapear la selección con el nombre de la carpeta en GitHub
+        trimestres = {
+            "1": "2425-3",
+            "2": "2526-1",
+            "3": "2526-2"
+        }
 
-        # Cargar datos de profesores
-        print("Cargando profesores...")
-        respuesta = requests.get(api_profesores)
-        if respuesta.status_code == 200:
-            datos = respuesta.json()
-            for profesor in datos:
-                cedula = profesor["Cedula"]
-                email = profesor["Email"]
-                apellido = profesor["Apellido"]
-                nombre = profesor["Nombre"]
-                max_carga = profesor["Max Carga"]
-                materias = profesor["Materias"]
+        if opcion not in trimestres:
+            print("Opción inválida. Volviendo al menú principal.")
+            return
 
-                nuevo_profesor = Profesor(cedula, email, apellido, nombre, max_carga, materias)
-                
-                self.profesores.append(nuevo_profesor) 
+        trimestre_seleccionado = trimestres[opcion]
+        base_url = f"https://raw.githubusercontent.com/FernandoSapient/BPTSP05/main/{trimestre_seleccionado}"
+        
+        try:
+            # Carga de Profesores
+            print(f"Descargando datos del trimestre {trimestre_seleccionado}...")
+            res_prof = requests.get(f"{base_url}/profesores.json")
+            res_prof.raise_for_status()
+            datos_prof = res_prof.json()
+
+            for p in datos_prof:
+                # IMPORTANTE: Asegúrate de que 'Profesor' esté con P mayúscula
+                nuevo = Profesor(
+                    p['nombre'], p['apellido'], p['cedula'], 
+                    p['correo'], p['materias'], p['max_carga']
+                )
+                self.profesores.append(nuevo)
+
+            # Carga de Materias
+            res_mat = requests.get(f"{base_url}/materias.json")
+            res_mat.raise_for_status()
+            datos_mat = res_mat.json()
+
+            for m in datos_mat:
+                # IMPORTANTE: Asegúrate de que 'Materia' esté con M mayúscula
+                nueva = Materia(m['codigo'], m['nombre'], m['secciones'])
+                self.materias.append(nueva)
+
+            print(f"\n¡Éxito! Se cargaron los datos del trimestre {trimestre_seleccionado}.")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error de conexión con la API: {e}")
+        except Exception as e:
+            print(f"Ocurrió un error inesperado: {e}")
              
-    def cargar_materias_tn(self, api_trimestre,num_trimestre):
+def cargar_materias_tn(self, api_trimestre,num_trimestre):
         respuesta = requests.get(api_trimestre)
         if respuesta.status_code == 200:
             datos = respuesta.json()
@@ -159,7 +181,7 @@ Maneja excepciones de conexión y procesa la respuesta JSON para crear objetos P
                 elif num_trimestre == 3:
                     self.materias_t3.append(nueva_materia)
                     
-    def menu_principal(self):
+def menu_principal(self):
         """
 Interfaz de usuario de consola que gestiona el flujo principal del programa 
 y el acceso a los diferentes módulos del sistema.
@@ -234,7 +256,7 @@ y el acceso a los diferentes módulos del sistema.
         print("Generando gráfico... Por favor, cierre la ventana del gráfico para continuar.")
         plt.show()
             
-    def modulo_profesores(self):   
+def modulo_profesores(self):   
         while True:
             titulo = '    ----- Módulo Profesores -----'
             opciones = ["Ver lista de profesores", "Ver un profesor específico", "Agregar un profesor a la lista", "Eliminar un profesor de la lista", "Modificar la lista de materias de un profesor", "Volver al menú principal"]
@@ -324,7 +346,7 @@ y el acceso a los diferentes módulos del sistema.
                 print("Volviendo al menú principal...")
                 break
             
-    def modificar_materias_profesor(self):
+def modificar_materias_profesor(self):
         # Modificar la lista de materias de un profesor (agregar o quitar materias)
         cedula = solicitar_dato('cedula')
         profesor = None
@@ -369,7 +391,7 @@ y el acceso a los diferentes módulos del sistema.
         if cont == 'y':
             self.profesores = copia_lista_profes
 
-    def modulo_materias(self):
+def modulo_materias(self):
         while True:
             titulo = "    ----- Módulo Materias -----"
             opciones = [
@@ -474,7 +496,7 @@ y el acceso a los diferentes módulos del sistema.
             else:
                 print("Opción inválida. Intente de nuevo.")
         
-    def generar_horarios(self):
+def generar_horarios(self):
         """
 Algoritmo de asignación automática. Distribuye las materias según la disponibilidad 
 de los profesores, respetando su carga máxima y los bloques horarios de 1.5 horas.
@@ -621,12 +643,12 @@ de los profesores, respetando su carga máxima y los bloques horarios de 1.5 hor
         self.menu_horario_generado()
 
 
-    def obtener_estado(self,prof,profesor_estado):
+def obtener_estado(self,prof,profesor_estado):
         if prof.cedula not in profesor_estado:
             profesor_estado[prof.cedula] = {"materias": set(), "bloques": set(), "profesor": prof}
         return profesor_estado[prof.cedula]
 
-    def profesores_para_materia(self,codigo_materia):
+def profesores_para_materia(self,codigo_materia):
         resultado = []
         for prof in self.profesores:
             if codigo_materia in prof.materias:
@@ -634,7 +656,7 @@ de los profesores, respetando su carga máxima y los bloques horarios de 1.5 hor
         return resultado
 
     # Intentar asignar una sección a un bloque
-    def asignar_seccion(self,seccion, bloque,bloque_asignaciones,profesor_estado):
+def asignar_seccion(self,seccion, bloque,bloque_asignaciones,profesor_estado):
         candidatos = []
         for prof in self.profesores_para_materia(seccion.materia_codigo):
             estado = self.obtener_estado(prof,profesor_estado)
@@ -669,7 +691,7 @@ de los profesores, respetando su carga máxima y los bloques horarios de 1.5 hor
             estado["materias"].add(seccion.materia_codigo)
         return True
 
-    def menu_horario_generado(self):
+def menu_horario_generado(self):
         if not self.horarios:
             print("No hay un horario generado. Genere uno antes.")
             return
