@@ -914,3 +914,7 @@ def menu_horario_generado(self):
                 print("¡Bloque horario actualizado con éxito!")
             else:
                 print("Selección inválida.")
+
+                if __name__ == "__main__":
+                    app = Sistema()
+            app.menu_principal()
